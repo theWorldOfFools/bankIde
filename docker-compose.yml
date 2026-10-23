@@ -16,7 +16,23 @@ services:
       timeout: 5s
       retries: 10
 
+  init:
+    image: bankide:local
+    build: .
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bankide}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-bankide}
+      BANKIDE_PORT: 4000
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "npm --workspace server run db:init && npm --workspace server run seed:admin"]
+
   app:
+    image: bankide:local
     build: .
     restart: unless-stopped
     env_file:
@@ -28,10 +44,12 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       BANKIDE_PORT: 4000
     ports:
-      - "4100:4000"
+      - "${BANKIDE_HOST_PORT:-4100}:4000"
     depends_on:
       db:
         condition: service_healthy
+      init:
+        condition: service_completed_successfully
 
 volumes:
   bankide_pgdata:

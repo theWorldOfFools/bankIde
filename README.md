@@ -28,6 +28,8 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 
 ## Menjalankan Secara Lokal
 
+Langkah 3–4 membutuhkan Node.js dan npm di mesin lokal dan hanya untuk pengembangan. Server tanpa Node/npm cukup memakai jalur Docker di bawah.
+
 1. Salin environment dan isi secret.
 
    ```bash
@@ -77,6 +79,7 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 | `BANKIDE_PORT` | Port server lokal. Default kode `4000`; contoh memakai `4100`. |
 | `PUBLIC_APP_URL` | Origin aplikasi untuk tautan email. Saat dev gunakan `http://localhost:5173`. |
 | `BANKIDE_PUBLIC_APP_URL` | Origin aplikasi untuk Compose/Docker. Default `http://localhost:4100`. |
+| `BANKIDE_HOST_PORT` | Port publik Compose di host. Default `4100`; tidak memakai port dev Vite `5173`. |
 | `DATABASE_URL` | Koneksi PostgreSQL. Compose menimpa nilainya ke hostname `db`. |
 | `DATABASE_SSL` | Set `true` untuk PostgreSQL yang mewajibkan SSL. |
 | `JWT_SECRET` | Minimal 32 karakter. |
@@ -143,15 +146,17 @@ npm run reminder:once
 
 Isi `AI_API_KEY` dan `AI_MODEL` untuk memakai API kompatibel OpenAI. `AI_BASE_URL` dapat diarahkan ke gateway lain. Tanpa konfigurasi AI, aplikasi memakai katalog kurasi lokal dan tetap dapat menyimpan rekomendasi sebagai ide.
 
-## Docker
+## Docker (tanpa Node/npm di server)
+
+Server hanya membutuhkan Docker dan Docker Compose. Dependency dan build React dijalankan di dalam image oleh `Dockerfile`; tidak ada `npm install`, `npm run build`, atau `npm run dev` yang dijalankan di host.
 
 ```bash
 docker compose up -d --build
-docker compose exec app npm --workspace server run db:init
-docker compose exec app npm --workspace server run seed:admin
 ```
 
-Aplikasi tersedia di `http://localhost:4100`. Build runtime hanya memasang dependency server; hasil build React disalin ke image. Untuk produksi, gunakan reverse proxy HTTPS, set `COOKIE_SECURE=true`, dan arahkan `BANKIDE_PUBLIC_APP_URL` ke domain publik.
+Service `init` berjalan sekali setiap deploy untuk menerapkan schema dan membuat admin dari `ADMIN_EMAIL`/`ADMIN_PASSWORD`; service `app` baru mulai setelah `init` selesai. Keduanya idempoten sehingga aman diulang, dan tidak perlu `exec` atau npm di server.
+
+Aplikasi tersedia di `http://localhost:4100`. Ubah port host lewat `BANKIDE_HOST_PORT` (misalnya `8080`), dan sesuaikan `BANKIDE_PUBLIC_APP_URL` bila memakai domain/port lain. Build runtime hanya memasang dependency server; hasil build React disalin dari stage build. Untuk produksi, gunakan reverse proxy HTTPS, set `COOKIE_SECURE=true`, dan arahkan `BANKIDE_PUBLIC_APP_URL` ke domain publik.
 
 ## Scripts
 
