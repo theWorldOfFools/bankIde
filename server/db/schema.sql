@@ -55,12 +55,20 @@ CREATE TABLE IF NOT EXISTS recommended_ideas (
   title TEXT NOT NULL,
   category TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
+  v1_features TEXT NOT NULL DEFAULT '',
+  solution TEXT NOT NULL DEFAULT '',
+  agency_prompt TEXT NOT NULL DEFAULT '',
   potential_score SMALLINT NOT NULL DEFAULT 70
     CHECK (potential_score BETWEEN 1 AND 100),
   source TEXT NOT NULL DEFAULT 'curated'
     CHECK (source IN ('ai', 'curated')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE recommended_ideas
+  ADD COLUMN IF NOT EXISTS v1_features TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS solution TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS agency_prompt TEXT NOT NULL DEFAULT '';
 
 CREATE UNIQUE INDEX IF NOT EXISTS recommended_ideas_identity_uidx
   ON recommended_ideas (lower(title), category);

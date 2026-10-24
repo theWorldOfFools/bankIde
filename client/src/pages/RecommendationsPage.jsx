@@ -73,14 +73,8 @@ export default function RecommendationsPage() {
     setSavingId(item.id);
     setNotice('');
     try {
-      await api('/ideas', {
+      await api(`/recommendations/${item.id}/save`, {
         method: 'POST',
-        body: JSON.stringify({
-          title: item.title,
-          category: item.category,
-          context: item.description,
-          status: 'idea',
-        }),
       });
       setSavedIds((current) => [...current, item.id]);
       setNotice(`"${item.title}" disimpan ke daftar ide.`);
