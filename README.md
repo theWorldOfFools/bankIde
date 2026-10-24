@@ -5,6 +5,7 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 ## Fitur
 
 - Login admin tunggal dengan cookie JWT httpOnly.
+- Registrasi admin pertama terbuka hanya saat database belum memiliki admin; setelah akun pertama dibuat, registrasi ditutup.
 - CRUD ide lengkap: judul, kategori, konteks, fitur V1, solusi, agency prompt, status, dan pengingat.
 - Dashboard statistik, pipeline status, kategori teratas, dan pengingat aktif.
 - Pencarian, filter kategori/status, tampilan tabel/kartu, dan paginasi.

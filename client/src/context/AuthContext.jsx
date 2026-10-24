@@ -46,6 +46,15 @@ export function AuthProvider({ children }) {
     return payload.admin;
   }, []);
 
+  const register = useCallback(async (email, password) => {
+    const payload = await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    setAdmin(payload.admin);
+    return payload.admin;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api('/auth/logout', { method: 'POST' });
@@ -58,9 +67,10 @@ export function AuthProvider({ children }) {
     admin,
     loading,
     login,
+    register,
     logout,
     isAuthenticated: Boolean(admin),
-  }), [admin, loading, login, logout]);
+  }), [admin, loading, login, register, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
