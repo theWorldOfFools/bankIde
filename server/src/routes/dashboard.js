@@ -7,43 +7,56 @@ const router = Router();
 router.use(requireAuth);
 
 router.get('/', asyncHandler(async (req, res) => {
+  const ownerId = req.user.role === 'admin' ? null : req.user.id;
+  const scoped = `
+    WITH scoped AS (
+      SELECT * FROM ideas
+      WHERE $1::bigint IS NULL OR owner_id = $1
+    )
+  `;
+
   const [statsResult, categoriesResult, statusesResult, remindersResult, recentResult, recommendationResult] = await Promise.all([
     pool.query(`
+      ${scoped}
       SELECT
-        (SELECT count(*)::int FROM ideas) AS "totalIdeas",
-        (SELECT count(*)::int FROM ideas WHERE status IN ('planned', 'in_progress')) AS "activeProjects",
-        (SELECT count(*)::int FROM ideas
+        (SELECT count(*)::int FROM scoped) AS "totalIdeas",
+        (SELECT count(*)::int FROM scoped WHERE status IN ('planned', 'in_progress')) AS "activeProjects",
+        (SELECT count(*)::int FROM scoped
           WHERE reminder_at IS NOT NULL AND status NOT IN ('done', 'archived')) AS "activeReminders",
-        (SELECT category FROM ideas
+        (SELECT category FROM scoped
           GROUP BY category
           ORDER BY count(*) DESC, category ASC
           LIMIT 1) AS "topCategory"
-    `),
+    `, [ownerId]),
     pool.query(`
+      ${scoped}
       SELECT category, count(*)::int AS count
-      FROM ideas
+      FROM scoped
       GROUP BY category
       ORDER BY count DESC, category ASC
       LIMIT 6
-    `),
+    `, [ownerId]),
     pool.query(`
+      ${scoped}
       SELECT status, count(*)::int AS count
-      FROM ideas
+      FROM scoped
       GROUP BY status
-    `),
+    `, [ownerId]),
     pool.query(`
+      ${scoped}
       SELECT id, title, category, status, reminder_at AS "reminderAt"
-      FROM ideas
+      FROM scoped
       WHERE reminder_at IS NOT NULL AND status NOT IN ('done', 'archived')
       ORDER BY reminder_at ASC
       LIMIT 6
-    `),
+    `, [ownerId]),
     pool.query(`
+      ${scoped}
       SELECT id, title, category, status, created_at AS "createdAt"
-      FROM ideas
+      FROM scoped
       ORDER BY created_at DESC, id DESC
       LIMIT 5
-    `),
+    `, [ownerId]),
     pool.query(`
       SELECT id, title, category, description, potential_score AS "potentialScore"
       FROM recommended_ideas

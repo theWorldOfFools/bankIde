@@ -4,14 +4,19 @@ import {
   Lightbulb,
   LogOut,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import InstallAppButton from './InstallAppButton';
 
-const navigation = [
+const baseNavigation = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/ideas', label: 'Daftar Ide', icon: Lightbulb, end: false },
   { to: '/recommendations', label: 'Rekomendasi', icon: Sparkles, end: false },
+];
+
+const adminNavigation = [
+  { to: '/admin/users', label: 'Kelola User', icon: Users, end: false },
 ];
 
 function navClass({ isActive }) {
@@ -24,8 +29,9 @@ function navClass({ isActive }) {
 }
 
 export default function AppLayout() {
-  const { admin, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  const navigation = isAdmin ? [...baseNavigation, ...adminNavigation] : baseNavigation;
 
   async function handleLogout() {
     await logout();
@@ -59,7 +65,10 @@ export default function AppLayout() {
 
         <div className="border-t border-slate-100 p-4">
           <InstallAppButton />
-          <p className="truncate px-2 text-xs text-slate-400">{admin?.email}</p>
+          <p className="truncate px-2 text-xs text-slate-400">{user?.email}</p>
+          <p className="px-2 text-[11px] font-medium uppercase tracking-wide text-indigo-500">
+            {isAdmin ? 'Admin' : 'User'}
+          </p>
           <button
             type="button"
             onClick={handleLogout}
@@ -107,7 +116,7 @@ export default function AppLayout() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) => [
-                  'flex min-w-20 flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-medium transition',
+                  'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition',
                   isActive ? 'text-indigo-600' : 'text-slate-500',
                 ].join(' ')}
               >

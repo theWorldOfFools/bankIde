@@ -11,7 +11,7 @@ import { api } from '../lib/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [admin, setAdmin] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,16 +19,16 @@ export function AuthProvider({ children }) {
 
     api('/auth/me')
       .then((payload) => {
-        if (active) setAdmin(payload.admin);
+        if (active) setUser(payload.user);
       })
       .catch(() => {
-        if (active) setAdmin(null);
+        if (active) setUser(null);
       })
       .finally(() => {
         if (active) setLoading(false);
       });
 
-    const handleUnauthorized = () => setAdmin(null);
+    const handleUnauthorized = () => setUser(null);
     window.addEventListener('bankide:unauthorized', handleUnauthorized);
 
     return () => {
@@ -42,8 +42,8 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    setAdmin(payload.admin);
-    return payload.admin;
+    setUser(payload.user);
+    return payload.user;
   }, []);
 
   const register = useCallback(async (email, password) => {
@@ -51,26 +51,29 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    setAdmin(payload.admin);
-    return payload.admin;
+    if (payload.authenticated) {
+      setUser(payload.user);
+    }
+    return payload;
   }, []);
 
   const logout = useCallback(async () => {
     try {
       await api('/auth/logout', { method: 'POST' });
     } finally {
-      setAdmin(null);
+      setUser(null);
     }
   }, []);
 
   const value = useMemo(() => ({
-    admin,
+    user,
     loading,
     login,
     register,
     logout,
-    isAuthenticated: Boolean(admin),
-  }), [admin, loading, login, register, logout]);
+    isAuthenticated: Boolean(user),
+    isAdmin: user?.role === 'admin',
+  }), [user, loading, login, register, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

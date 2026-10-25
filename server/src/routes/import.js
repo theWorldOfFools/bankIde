@@ -242,7 +242,10 @@ router.post('/ideas', upload.single('file'), asyncHandler(async (req, res) => {
 
   try {
     await client.query('BEGIN');
-    const existing = await client.query('SELECT lower(title) AS title, category FROM ideas');
+    const existing = await client.query(
+      'SELECT lower(title) AS title, category FROM ideas WHERE owner_id = $1',
+      [req.user.id]
+    );
     const existingKeys = new Set(
       existing.rows.map((row) => `${row.title}\u0000${row.category}`)
     );
@@ -256,10 +259,11 @@ router.post('/ideas', upload.single('file'), asyncHandler(async (req, res) => {
 
       const result = await client.query(
         `INSERT INTO ideas
-          (title, category, context, v1_features, solution, agency_prompt, status, reminder_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+          (owner_id, title, category, context, v1_features, solution, agency_prompt, status, reminder_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
          RETURNING *`,
         [
+          req.user.id,
           idea.title,
           idea.category,
           idea.context,

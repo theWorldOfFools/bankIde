@@ -15,8 +15,11 @@ export async function sendPushReminder(idea) {
     throw new Error('Web Push belum dikonfigurasi.');
   }
 
+  if (!idea.owner_id) return { sent: 0 };
+
   const { rows } = await pool.query(
-    'SELECT id, endpoint, p256dh, auth FROM push_subscriptions'
+    'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1',
+    [idea.owner_id]
   );
   if (rows.length === 0) return { sent: 0 };
 

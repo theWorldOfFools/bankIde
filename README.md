@@ -4,13 +4,14 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 
 ## Fitur
 
-- Login admin tunggal dengan cookie JWT httpOnly.
-- Registrasi admin pertama terbuka hanya saat database belum memiliki admin; setelah akun pertama dibuat, registrasi ditutup.
+- Login admin dan user dengan cookie JWT httpOnly.
+- Registrasi user dengan verifikasi email dan persetujuan admin. Akun admin pertama tetap dibuat langsung saat workspace belum memiliki admin.
+- Ide bersifat privat per user; admin dapat melihat dan mengelola seluruh ide.
 - CRUD ide lengkap: judul, kategori, konteks, fitur V1, solusi, agency prompt, status, dan pengingat.
 - Dashboard statistik, pipeline status, kategori teratas, dan pengingat aktif.
 - Pencarian, filter kategori/status, tampilan tabel/kartu, dan paginasi.
 - Import Excel `.xlsx`/`.xls` dengan validasi, deteksi duplikat, dan laporan per baris.
-- Reminder email dan Web Push melalui outbox yang diproses cron setiap menit, dengan retry maksimal tiga kali.
+- Reminder email dan Web Push ke pemilik ide melalui outbox yang diproses cron setiap menit, dengan retry maksimal tiga kali.
 - Rekomendasi ide dari AI opsional (API kompatibel OpenAI) atau kurasi lokal sebagai fallback.
 - PWA dengan manifest, service worker, app shell offline, dan notifikasi push.
 
@@ -86,7 +87,7 @@ Langkah 3–4 membutuhkan Node.js dan npm di mesin lokal dan hanya untuk pengemb
 | `JWT_SECRET` | Minimal 32 karakter. |
 | `COOKIE_SECURE` | Set `true` saat produksi memakai HTTPS. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Kredensial yang dibuat oleh `seed:admin`. Password minimal 12 karakter. |
-| `SMTP_*` | Konfigurasi email. Reminder email aktif jika `SMTP_HOST` dan `ADMIN_EMAIL` terisi. |
+| `SMTP_*` | Konfigurasi email. Verifikasi email, notifikasi persetujuan, dan reminder email aktif jika `SMTP_HOST` terisi. |
 | `VAPID_*` | Kunci Web Push. Push aktif jika subject, public key, dan private key terisi. |
 | `AI_API_KEY` / `AI_MODEL` | Mengaktifkan generate rekomendasi lewat AI. Jika kosong, fallback kurasi dipakai. |
 | `AI_BASE_URL` | Base URL API kompatibel OpenAI. Default `https://api.openai.com/v1`. |
@@ -100,6 +101,18 @@ docker run --rm -p 1025:1025 -p 8025:8025 axllent/mailpit
 ```
 
 Lalu set `SMTP_HOST=127.0.0.1` dan `SMTP_PORT=1025`. Inbox uji tersedia di `http://localhost:8025`.
+
+### Registrasi User
+
+Registrasi user hanya dibuka jika `SMTP_HOST` sudah dikonfigurasi. Alurnya:
+
+1. User mendaftar di `/register` dengan email dan password minimal 12 karakter.
+2. Server mengirim tautan verifikasi yang berlaku 24 jam (token disimpan sebagai hash).
+3. Setelah email terverifikasi, akun berstatus menunggu persetujuan dan admin menerima notifikasi.
+4. Admin menyetujui atau menolak lewat halaman **Kelola User** (`/admin/users`).
+5. User hanya bisa login setelah akun berstatus aktif.
+
+Jika workspace belum memiliki admin, pendaftaran pertama otomatis membuat akun admin aktif tanpa verifikasi email. `npm run seed:admin` juga membuat atau memperbarui admin aktif.
 
 ### Web Push
 
@@ -130,12 +143,12 @@ Aturan:
 - Format `.xlsx` atau `.xls`, maksimal 5 MB dan 5.000 baris.
 - Hanya `title`/`judul` yang wajib. Kategori kosong menjadi `Lainnya`.
 - Status yang tidak dikenali menjadi `idea` dan dilaporkan sebagai warning.
-- Duplikat ditentukan dari kombinasi `lower(title)` dan `category`, lalu dilewati.
+- Duplikat ditentukan dari kombinasi `lower(title)` dan `category` pada ide milik user yang sama, lalu dilewati.
 - Tanggal tanpa offset dianggap WIB (`Asia/Jakarta`).
 
 ## Reminder
 
-Saat ide dibuat atau diubah, server membuat job di tabel `reminder_deliveries` untuk setiap channel yang aktif. Cron berjalan setiap menit, mengambil job dengan `FOR UPDATE SKIP LOCKED`, mengirim email/push, lalu menandainya `sent`. Job yang gagal dicoba ulang dengan backoff sampai tiga attempt.
+Saat ide dibuat atau diubah, server membuat job di tabel `reminder_deliveries` untuk setiap channel yang aktif. Email dikirim ke alamat pemilik ide, sedangkan Web Push hanya dikirim ke langganan milik pemilik ide. Cron berjalan setiap menit, mengambil job dengan `FOR UPDATE SKIP LOCKED`, mengirim email/push, lalu menandainya `sent`. Job yang gagal dicoba ulang dengan backoff sampai tiga attempt.
 
 Perintah manual:
 
@@ -177,9 +190,9 @@ Aplikasi tersedia di `http://localhost:4100`. Ubah port host lewat `BANKIDE_HOST
 client/                 React PWA
   public/               Manifest dan ikon
   src/components/       Shell, form, push toggle
-  src/context/          Sesi admin
+  src/context/          Sesi user
   src/lib/              API client, tanggal WIB, konstanta
-  src/pages/            Login, dashboard, ide, rekomendasi
+  src/pages/            Login, daftar, verifikasi email, dashboard, ide, rekomendasi, kelola user
   src/sw.js             Service worker Workbox + push
 server/
   db/schema.sql         Schema PostgreSQL
@@ -197,4 +210,4 @@ npm run build
 npm run reminder:once
 ```
 
-Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, dan `/api/push`.
+Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran.

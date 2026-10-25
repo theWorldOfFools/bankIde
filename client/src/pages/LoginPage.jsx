@@ -1,26 +1,31 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, LoaderCircle } from 'lucide-react';
+import { ArrowRight, LoaderCircle, Send } from 'lucide-react';
 import AuthShell from '../components/AuthShell';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 
 export default function LoginPage() {
-  const { admin, loading, login } = useAuth();
+  const { user, loading, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendNotice, setResendNotice] = useState('');
 
   useEffect(() => {
     let active = true;
 
     api('/auth/registration-status')
       .then((payload) => {
-        if (active) setRegistrationOpen(Boolean(payload.registrationOpen));
+        if (active) {
+          setRegistrationOpen(Boolean(payload.adminBootstrap || payload.userRegistrationOpen));
+        }
       })
       .catch(() => {});
 
@@ -37,13 +42,15 @@ export default function LoginPage() {
     );
   }
 
-  if (admin) {
+  if (user) {
     return <Navigate to="/" replace />;
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
+    setErrorCode('');
+    setResendNotice('');
     setSubmitting(true);
     try {
       await login(email.trim(), password);
@@ -51,8 +58,25 @@ export default function LoginPage() {
       navigate(destination, { replace: true });
     } catch (loginError) {
       setError(loginError.message);
+      setErrorCode(loginError.code || '');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    setResending(true);
+    setResendNotice('');
+    try {
+      const payload = await api('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setResendNotice(payload.message);
+    } catch (resendError) {
+      setResendNotice(resendError.message);
+    } finally {
+      setResending(false);
     }
   }
 
@@ -63,13 +87,29 @@ export default function LoginPage() {
         Masuk ke workspace
       </h2>
       <p className="mt-2 text-sm text-slate-500">
-        Gunakan akun admin yang sudah dikonfigurasi pada server.
+        Gunakan akun yang sudah terdaftar dan disetujui admin.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
+            {errorCode === 'email_unverified' && (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-rose-700 underline-offset-2 hover:underline disabled:cursor-wait disabled:opacity-60"
+              >
+                {resending ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {resending ? 'Mengirim...' : 'Kirim ulang email verifikasi'}
+              </button>
+            )}
+            {resendNotice && <span className="mt-2 block text-rose-600">{resendNotice}</span>}
           </div>
         )}
 
@@ -82,7 +122,7 @@ export default function LoginPage() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            placeholder="admin@bankide.local"
+            placeholder="nama@email.com"
           />
         </label>
 
@@ -115,12 +155,12 @@ export default function LoginPage() {
 
       {registrationOpen && (
         <p className="mt-6 text-center text-sm text-slate-500">
-          Belum ada admin?{' '}
+          Belum punya akun?{' '}
           <Link
             to="/register"
             className="font-semibold text-indigo-600 transition hover:text-indigo-500"
           >
-            Buat akun
+            Daftar
           </Link>
         </p>
       )}

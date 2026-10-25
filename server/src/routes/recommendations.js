@@ -163,10 +163,18 @@ router.post('/:id/save', asyncHandler(async (req, res) => {
 
   const { rows: ideaRows } = await pool.query(
     `INSERT INTO ideas
-      (title, category, context, v1_features, solution, agency_prompt, status)
-     VALUES ($1, $2, $3, $4, $5, $6, 'idea')
+      (owner_id, title, category, context, v1_features, solution, agency_prompt, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'idea')
      RETURNING *`,
-    [item.title, item.category, item.description, v1Features, solution, agencyPrompt]
+    [
+      req.user.id,
+      item.title,
+      item.category,
+      item.description,
+      v1Features,
+      solution,
+      agencyPrompt,
+    ]
   );
   const idea = ideaRows[0];
 

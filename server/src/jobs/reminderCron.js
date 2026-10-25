@@ -45,7 +45,11 @@ export async function runReminderDispatch() {
 
     const ideaIds = [...new Set(jobs.map((job) => job.idea_id))];
     const { rows: ideas } = await pool.query(
-      'SELECT id, title, category, context, reminder_at, status FROM ideas WHERE id = ANY($1::bigint[])',
+      `SELECT i.id, i.owner_id, i.title, i.category, i.context, i.reminder_at, i.status,
+              u.email AS owner_email, u.status AS owner_status
+       FROM ideas i
+       LEFT JOIN users u ON u.id = i.owner_id
+       WHERE i.id = ANY($1::bigint[])`,
       [ideaIds]
     );
     const ideaById = new Map(ideas.map((idea) => [String(idea.id), idea]));
@@ -58,7 +62,10 @@ export async function runReminderDispatch() {
         if (job.channel === 'push') {
           await sendPushReminder(idea);
         } else if (job.channel === 'email') {
-          await sendEmailReminder(idea);
+          if (idea.owner_status !== 'active' || !idea.owner_email) {
+            throw new Error('Pemilik ide tidak aktif atau tidak memiliki email.');
+          }
+          await sendEmailReminder(idea, idea.owner_email);
         } else {
           throw new Error(`Channel tidak dikenal: ${job.channel}`);
         }

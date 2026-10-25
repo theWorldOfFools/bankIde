@@ -64,7 +64,7 @@ export const config = {
   adminEmail: (process.env.ADMIN_EMAIL || '').trim().toLowerCase(),
   adminPassword: process.env.ADMIN_PASSWORD || '',
   smtp,
-  emailEnabled: Boolean(smtp.host && process.env.ADMIN_EMAIL),
+  emailEnabled: Boolean(smtp.host),
   vapid,
   pushEnabled: Boolean(vapid.subject && vapid.publicKey && vapid.privateKey),
   ai,

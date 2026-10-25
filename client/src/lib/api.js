@@ -1,9 +1,10 @@
 export class ApiError extends Error {
-  constructor(message, status, details = null) {
+  constructor(message, status, details = null, code = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.details = details;
+    this.code = code;
   }
 }
 
@@ -39,7 +40,8 @@ export async function api(path, options = {}) {
     throw new ApiError(
       payload?.message || 'Terjadi kesalahan pada server.',
       response.status,
-      payload?.details || null
+      payload?.details || null,
+      payload?.code || null
     );
   }
 

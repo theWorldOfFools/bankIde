@@ -17,11 +17,14 @@ if (password.length < 12) {
 try {
   const hash = await bcrypt.hash(password, 12);
   await pool.query(`
-    INSERT INTO admin_users (email, password_hash)
-    VALUES ($1, $2)
+    INSERT INTO users (email, password_hash, role, status, email_verified_at)
+    VALUES ($1, $2, 'admin', 'active', NOW())
     ON CONFLICT (lower(email)) DO UPDATE
     SET email = EXCLUDED.email,
-        password_hash = EXCLUDED.password_hash
+        password_hash = EXCLUDED.password_hash,
+        role = 'admin',
+        status = 'active',
+        email_verified_at = COALESCE(users.email_verified_at, NOW())
   `, [email, hash]);
   console.log(`[seed] admin ${email} siap digunakan.`);
 } catch (error) {

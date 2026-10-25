@@ -23,8 +23,13 @@ export default function PushToggle() {
       .then(async (registration) => {
         if (!active || !registration) return;
         const subscription = await registration.pushManager.getSubscription();
-        setEnabled(Boolean(subscription) && Notification.permission === 'granted');
+        const alreadyEnabled = Boolean(subscription) && Notification.permission === 'granted';
+        setEnabled(alreadyEnabled);
         setVisible(true);
+
+        if (alreadyEnabled) {
+          enablePush().catch(() => {});
+        }
       })
       .catch(() => {
         if (active) setVisible(false);

@@ -44,6 +44,8 @@ const listSchema = z.object({
 
 const mapIdea = (row) => ({
   id: Number(row.id),
+  ownerId: row.owner_id ? Number(row.owner_id) : null,
+  ownerEmail: row.owner_email ?? null,
   title: row.title,
   category: row.category,
   context: row.context,
@@ -65,8 +67,12 @@ const parseId = (value) => {
 };
 
 router.get('/categories', asyncHandler(async (req, res) => {
+  const isAdmin = req.user.role === 'admin';
   const { rows } = await pool.query(
-    'SELECT DISTINCT category FROM ideas ORDER BY category ASC'
+    `SELECT DISTINCT category FROM ideas
+     ${isAdmin ? '' : 'WHERE owner_id = $1'}
+     ORDER BY category ASC`,
+    isAdmin ? [] : [req.user.id]
   );
   res.json({ items: rows.map((row) => row.category) });
 }));
@@ -76,19 +82,23 @@ router.get('/', asyncHandler(async (req, res) => {
   const conditions = [];
   const params = [];
 
+  if (req.user.role !== 'admin') {
+    params.push(req.user.id);
+    conditions.push(`i.owner_id = $${params.length}`);
+  }
   if (input.search) {
     params.push(`%${input.search}%`);
     conditions.push(
-      `(title || ' ' || category || ' ' || context || ' ' || v1_features || ' ' || solution) ILIKE $${params.length}`
+      `(i.title || ' ' || i.category || ' ' || i.context || ' ' || i.v1_features || ' ' || i.solution) ILIKE $${params.length}`
     );
   }
   if (input.category) {
     params.push(input.category);
-    conditions.push(`category = $${params.length}`);
+    conditions.push(`i.category = $${params.length}`);
   }
   if (input.status) {
     params.push(input.status);
-    conditions.push(`status::text = $${params.length}`);
+    conditions.push(`i.status::text = $${params.length}`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -101,14 +111,16 @@ router.get('/', asyncHandler(async (req, res) => {
 
   const [itemsResult, countResult] = await Promise.all([
     pool.query(
-      `SELECT * FROM ideas
+      `SELECT i.*, u.email AS owner_email
+       FROM ideas i
+       LEFT JOIN users u ON u.id = i.owner_id
        ${where}
-       ORDER BY ${input.sort} ${input.order.toUpperCase()}, id DESC
+       ORDER BY i.${input.sort} ${input.order.toUpperCase()}, i.id DESC
        LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
       params
     ),
     pool.query(
-      `SELECT count(*)::int AS total FROM ideas ${where}`,
+      `SELECT count(*)::int AS total FROM ideas i ${where}`,
       countParams
     ),
   ]);
@@ -127,7 +139,14 @@ router.get('/', asyncHandler(async (req, res) => {
 
 router.get('/:id', asyncHandler(async (req, res) => {
   const id = parseId(req.params.id);
-  const { rows } = await pool.query('SELECT * FROM ideas WHERE id = $1', [id]);
+  const isAdmin = req.user.role === 'admin';
+  const { rows } = await pool.query(
+    `SELECT i.*, u.email AS owner_email
+     FROM ideas i
+     LEFT JOIN users u ON u.id = i.owner_id
+     WHERE i.id = $1 ${isAdmin ? '' : 'AND i.owner_id = $2'}`,
+    isAdmin ? [id] : [id, req.user.id]
+  );
   if (!rows[0]) throw new HttpError(404, 'Ide tidak ditemukan.');
   res.json(mapIdea(rows[0]));
 }));
@@ -140,10 +159,11 @@ router.post('/', asyncHandler(async (req, res) => {
     await client.query('BEGIN');
     const { rows } = await client.query(
       `INSERT INTO ideas
-        (title, category, context, v1_features, solution, agency_prompt, status, reminder_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        (owner_id, title, category, context, v1_features, solution, agency_prompt, status, reminder_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        RETURNING *`,
       [
+        req.user.id,
         input.title,
         input.category,
         input.context,
@@ -193,13 +213,20 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   }
 
   values.push(id);
+  const idIndex = values.length;
+  let ownerClause = '';
+  if (req.user.role !== 'admin') {
+    values.push(req.user.id);
+    ownerClause = ` AND owner_id = $${values.length}`;
+  }
+
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
       `UPDATE ideas SET ${assignments.join(', ')}
-       WHERE id = $${values.length}
+       WHERE id = $${idIndex}${ownerClause}
        RETURNING *`,
       values
     );
@@ -218,7 +245,11 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 
 router.delete('/:id', asyncHandler(async (req, res) => {
   const id = parseId(req.params.id);
-  const { rowCount } = await pool.query('DELETE FROM ideas WHERE id = $1', [id]);
+  const isAdmin = req.user.role === 'admin';
+  const { rowCount } = await pool.query(
+    `DELETE FROM ideas WHERE id = $1 ${isAdmin ? '' : 'AND owner_id = $2'}`,
+    isAdmin ? [id] : [id, req.user.id]
+  );
   if (!rowCount) throw new HttpError(404, 'Ide tidak ditemukan.');
   res.status(204).end();
 }));
