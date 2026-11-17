@@ -11,6 +11,7 @@ import monitoringRouter from './routes/monitoring.js';
 import importRouter from './routes/import.js';
 import dashboardRouter from './routes/dashboard.js';
 import recommendationsRouter from './routes/recommendations.js';
+import insightsRouter from './routes/insights.js';
 import pushRouter from './routes/push.js';
 import { errorHandler, notFound } from './errors.js';
 
@@ -38,6 +39,7 @@ app.use('/api/ideas', ideasRouter);
 app.use('/api/import', importRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/recommendations', recommendationsRouter);
+app.use('/api/insights', insightsRouter);
 app.use('/api/push', pushRouter);
 app.use('/api', notFound);
 

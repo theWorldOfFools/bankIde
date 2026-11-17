@@ -17,7 +17,7 @@ const enrichedIdeaSchema = z.object({
   agency_prompt: z.string().trim().min(20).max(6000),
 });
 
-function parseJsonContent(content) {
+export function parseJsonContent(content) {
   const cleaned = String(content ?? '')
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
@@ -49,7 +49,7 @@ function curatedResult(category, count, warning = null) {
   };
 }
 
-async function callAi(messages, temperature = 0.8) {
+export async function callAi(messages, temperature = 0.8) {
   const response = await fetch(`${config.ai.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {

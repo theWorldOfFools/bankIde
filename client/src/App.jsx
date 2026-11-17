@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import DashboardPage from './pages/DashboardPage';
 import IdeasPage from './pages/IdeasPage';
+import InsightsPage from './pages/InsightsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 
@@ -21,6 +22,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="ideas" element={<IdeasPage />} />
+            <Route path="insights" element={<InsightsPage />} />
             <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
           </Route>

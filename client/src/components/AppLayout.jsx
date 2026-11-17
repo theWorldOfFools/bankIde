@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  BrainCircuit,
   ChevronRight,
   LayoutDashboard,
   Lightbulb,
@@ -14,6 +15,7 @@ import InstallAppButton from './InstallAppButton';
 const baseNavigation = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/ideas', label: 'Daftar Ide', icon: Lightbulb, end: false },
+  { to: '/insights', label: 'Insight', icon: BrainCircuit, end: false },
   { to: '/recommendations', label: 'Rekomendasi', icon: Sparkles, end: false },
 ];
 
@@ -24,6 +26,7 @@ const adminNavigation = [
 const pageTitles = {
   '/': 'Dashboard',
   '/ideas': 'Daftar Ide',
+  '/insights': 'Insight Produktivitas',
   '/recommendations': 'Rekomendasi',
   '/admin/users': 'Kelola User',
 };

@@ -10,6 +10,7 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 - CRUD ide lengkap: judul, kategori, konteks, fitur V1, solusi, agency prompt, link demo, status, dan pengingat.
 - Monitoring per ide: checklist harian yang dapat dicentang per tanggal, catatan progress/blocker, task proyek, lampiran file, dan link demo.
 - Dashboard statistik, pipeline status, kategori teratas, dan pengingat aktif.
+- Insight produktivitas dari metrik eksekusi, konsistensi, penyelesaian, dan momentum; AI opsional untuk ringkasan, prioritas proyek, risiko, dan rencana aksi.
 - Pencarian, filter kategori/status, tampilan tabel/kartu, dan paginasi server-side pada daftar ide, rekomendasi, dan kelola user.
 - Antarmuka modern dengan panel glass, transisi halaman, kartu tilt 3D, dan animasi modal menggunakan Motion.
 - Import Excel `.xlsx`/`.xls` dengan validasi, deteksi duplikat, dan laporan per baris.
@@ -206,7 +207,7 @@ client/                 React PWA
   src/components/       Shell, form, detail monitoring, push toggle
   src/context/          Sesi user
   src/lib/              API client, tanggal WIB, konstanta
-  src/pages/            Login, daftar, verifikasi email, dashboard, ide, rekomendasi, kelola user
+  src/pages/            Login, daftar, verifikasi email, dashboard, ide, insight, rekomendasi, kelola user
   src/sw.js             Service worker Workbox + push
 server/
   db/schema.sql         Schema PostgreSQL
@@ -224,4 +225,4 @@ npm run build
 npm run reminder:once
 ```
 
-Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/ideas/:id/monitoring`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran. Daftar ide, rekomendasi, dan user menerima parameter `page` dan `limit`, lalu mengembalikan `meta` berisi `page`, `pageSize`, `total`, dan `totalPages`.
+Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/ideas/:id/monitoring`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, `/api/insights`, `/api/insights/analyze`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran. Daftar ide, rekomendasi, dan user menerima parameter `page` dan `limit`, lalu mengembalikan `meta` berisi `page`, `pageSize`, `total`, dan `totalPages`.
