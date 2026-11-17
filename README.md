@@ -11,6 +11,7 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 - Monitoring per ide: checklist harian yang dapat dicentang per tanggal, catatan progress/blocker, task proyek, lampiran file, dan link demo.
 - Dashboard statistik, pipeline status, kategori teratas, dan pengingat aktif.
 - Insight produktivitas dari metrik eksekusi, konsistensi, penyelesaian, dan momentum; AI opsional untuk ringkasan, prioritas proyek, risiko, dan rencana aksi.
+- Pengaturan AI dinamis khusus admin: provider, model, timeout, status aktif, dan API key terenkripsi; langsung berlaku tanpa restart server.
 - Pencarian, filter kategori/status, tampilan tabel/kartu, dan paginasi server-side pada daftar ide, rekomendasi, dan kelola user.
 - Antarmuka modern dengan panel glass, transisi halaman, kartu tilt 3D, dan animasi modal menggunakan Motion.
 - Import Excel `.xlsx`/`.xls` dengan validasi, deteksi duplikat, dan laporan per baris.
@@ -92,8 +93,9 @@ Langkah 3–4 membutuhkan Node.js dan npm di mesin lokal dan hanya untuk pengemb
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Kredensial yang dibuat oleh `seed:admin`. Password minimal 12 karakter. |
 | `SMTP_*` | Konfigurasi email. Verifikasi email, notifikasi persetujuan, dan reminder email aktif jika `SMTP_HOST` terisi. |
 | `VAPID_*` | Kunci Web Push. Push aktif jika subject, public key, dan private key terisi. |
-| `AI_API_KEY` / `AI_MODEL` | Mengaktifkan generate rekomendasi lewat AI. Jika kosong, fallback kurasi dipakai. |
+| `AI_API_KEY` / `AI_MODEL` | Nilai default AI jika pengaturan database belum diisi. Jika kosong, fallback kurasi/rekomendasi lokal dipakai. |
 | `AI_BASE_URL` | Base URL API kompatibel OpenAI. Default `https://api.openai.com/v1`. |
+| `AI_TIMEOUT_MS` | Batas waktu permintaan AI dalam milidetik. Default `20000`. |
 
 ### Email
 
@@ -173,7 +175,16 @@ npm run reminder:once
 
 ## AI Opsional
 
-Isi `AI_API_KEY` dan `AI_MODEL` untuk memakai API kompatibel OpenAI. `AI_BASE_URL` dapat diarahkan ke gateway lain. Tanpa konfigurasi AI, aplikasi memakai katalog kurasi lokal dan tetap dapat menyimpan rekomendasi sebagai ide.
+Admin dapat mengatur AI langsung dari menu **Pengaturan AI** (`/admin/ai`). Pengaturan disimpan di tabel `ai_settings` dan langsung dipakai oleh rekomendasi ide serta insight produktivitas tanpa restart server. Yang dapat diatur:
+
+- Status aktif/nonaktif AI.
+- API key provider (disimpan terenkripsi AES-256-GCM dengan kunci turunan `JWT_SECRET`).
+- Base URL API kompatibel OpenAI.
+- Model dan timeout permintaan.
+- Uji koneksi sebelum atau sesudah menyimpan.
+- Reset ke default environment.
+
+API key tidak pernah dikembalikan utuh oleh API; UI hanya menampilkan penanda bahwa key sudah terpasang. Mengosongkan field API key saat menyimpan akan mempertahankan key yang ada. Jika database belum memiliki pengaturan, aplikasi memakai `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL`, dan `AI_TIMEOUT_MS` dari environment. Tanpa konfigurasi AI, aplikasi memakai katalog kurasi lokal dan insight berbasis metrik lokal sebagai fallback.
 
 ## Docker (tanpa Node/npm di server)
 
@@ -225,4 +236,4 @@ npm run build
 npm run reminder:once
 ```
 
-Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/ideas/:id/monitoring`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, `/api/insights`, `/api/insights/analyze`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran. Daftar ide, rekomendasi, dan user menerima parameter `page` dan `limit`, lalu mengembalikan `meta` berisi `page`, `pageSize`, `total`, dan `totalPages`.
+Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/ideas/:id/monitoring`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, `/api/insights`, `/api/insights/analyze`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran. Endpoint `/api/admin/ai` hanya dapat diakses admin untuk membaca (`GET`), menyimpan (`PUT`), menguji koneksi (`POST /test`), dan mereset (`DELETE`) konfigurasi AI. Daftar ide, rekomendasi, dan user menerima parameter `page` dan `limit`, lalu mengembalikan `meta` berisi `page`, `pageSize`, `total`, dan `totalPages`.

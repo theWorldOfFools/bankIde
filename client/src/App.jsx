@@ -10,6 +10,7 @@ import IdeasPage from './pages/IdeasPage';
 import InsightsPage from './pages/InsightsPage';
 import RecommendationsPage from './pages/RecommendationsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import AiSettingsPage from './pages/AiSettingsPage';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="insights" element={<InsightsPage />} />
             <Route path="recommendations" element={<RecommendationsPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="admin/ai" element={<AiSettingsPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

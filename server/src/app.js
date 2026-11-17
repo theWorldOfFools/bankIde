@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
+import adminAiRouter from './routes/adminAi.js';
 import ideasRouter from './routes/ideas.js';
 import monitoringRouter from './routes/monitoring.js';
 import importRouter from './routes/import.js';
@@ -13,7 +14,8 @@ import dashboardRouter from './routes/dashboard.js';
 import recommendationsRouter from './routes/recommendations.js';
 import insightsRouter from './routes/insights.js';
 import pushRouter from './routes/push.js';
-import { errorHandler, notFound } from './errors.js';
+import { getAiConfig } from './services/aiConfig.js';
+import { asyncHandler, errorHandler, notFound } from './errors.js';
 
 export const app = express();
 
@@ -23,16 +25,25 @@ app.use(helmet());
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', asyncHandler(async (req, res) => {
+  let aiRecommendations = config.aiEnabled;
+
+  try {
+    aiRecommendations = (await getAiConfig()).enabled;
+  } catch (error) {
+    console.warn('[health] gagal membaca konfigurasi AI:', error.message);
+  }
+
   res.json({
     status: 'ok',
     emailReminders: config.emailEnabled,
     pushReminders: config.pushEnabled,
-    aiRecommendations: config.aiEnabled,
+    aiRecommendations,
   });
-});
+}));
 
 app.use('/api/auth', authRouter);
+app.use('/api/admin/ai', adminAiRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/ideas/:ideaId/monitoring', monitoringRouter);
 app.use('/api/ideas', ideasRouter);

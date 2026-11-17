@@ -286,4 +286,26 @@ CREATE INDEX IF NOT EXISTS reminder_deliveries_due_idx
   ON reminder_deliveries (status, next_attempt_at)
   WHERE status IN ('pending', 'failed');
 
+CREATE TABLE IF NOT EXISTS ai_settings (
+  id SMALLINT PRIMARY KEY DEFAULT 1
+    CONSTRAINT ai_settings_single_row_check CHECK (id = 1),
+  api_key_encrypted TEXT,
+  base_url TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  timeout_ms INTEGER NOT NULL DEFAULT 20000
+    CONSTRAINT ai_settings_timeout_check CHECK (timeout_ms BETWEEN 1000 AND 120000),
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE ai_settings
+  ADD COLUMN IF NOT EXISTS api_key_encrypted TEXT,
+  ADD COLUMN IF NOT EXISTS base_url TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS model TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS timeout_ms INTEGER NOT NULL DEFAULT 20000,
+  ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS updated_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 COMMIT;

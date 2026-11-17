@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { config } from '../config.js';
+import { getAiConfig } from './aiConfig.js';
 import { selectCurated } from './curatedIdeas.js';
 
 const generatedIdeaSchema = z.object({
@@ -49,19 +49,20 @@ function curatedResult(category, count, warning = null) {
   };
 }
 
-export async function callAi(messages, temperature = 0.8) {
-  const response = await fetch(`${config.ai.baseUrl}/chat/completions`, {
+export async function callAi(messages, temperature = 0.8, aiConfig = null) {
+  const ai = aiConfig || await getAiConfig();
+  const response = await fetch(`${ai.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.ai.apiKey}`,
+      Authorization: `Bearer ${ai.apiKey}`,
     },
     body: JSON.stringify({
-      model: config.ai.model,
+      model: ai.model,
       temperature,
       messages,
     }),
-    signal: AbortSignal.timeout(config.ai.timeoutMs),
+    signal: AbortSignal.timeout(ai.timeoutMs),
   });
 
   if (!response.ok) {
@@ -77,7 +78,9 @@ export async function generateRecommendations({
   count = 4,
   context = '',
 }) {
-  if (!config.aiEnabled) {
+  const ai = await getAiConfig();
+
+  if (!ai.enabled) {
     return curatedResult(category, count);
   }
 
@@ -103,7 +106,7 @@ export async function generateRecommendations({
     const content = await callAi([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
-    ]);
+    ], 0.8, ai);
     const ideas = parseAiContent(content).slice(0, count);
 
     return {
@@ -122,7 +125,8 @@ export async function generateRecommendations({
 }
 
 export async function enrichIdeaFields({ title, category, description }) {
-  if (!config.aiEnabled) return null;
+  const ai = await getAiConfig();
+  if (!ai.enabled) return null;
 
   const systemPrompt = [
     'Anda adalah product strategist untuk pasar Indonesia.',
@@ -146,7 +150,8 @@ export async function enrichIdeaFields({ title, category, description }) {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      0.4
+      0.4,
+      ai
     );
 
     return enrichedIdeaSchema.parse(parseJsonContent(content));

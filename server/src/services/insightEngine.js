@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { config } from '../config.js';
 import { pool } from '../db.js';
+import { getAiConfig } from './aiConfig.js';
 import { callAi, parseJsonContent } from './recommendationEngine.js';
 
 const STATUS_LABELS = {
@@ -387,7 +387,7 @@ function buildRecommendedProjects(data) {
     }));
 }
 
-function buildLocalReport(data) {
+function buildLocalReport(data, aiAvailable = false) {
   const metrics = computeMetrics(data);
   const recommendedProjects = buildRecommendedProjects(data);
   const { periodDays, ideas, tasks, checklist, activity, blockers } = data;
@@ -472,7 +472,7 @@ function buildLocalReport(data) {
     generatedAt: new Date().toISOString(),
     source: 'local',
     warning: null,
-    aiAvailable: config.aiEnabled,
+    aiAvailable,
     score: metrics.score,
     scoreLabel: scoreLabel(metrics.score, hasData),
     summary,
@@ -533,8 +533,8 @@ function mergeAiReport(localReport, aiReport, data) {
   };
 }
 
-async function analyzeWithAi(data, localReport) {
-  if (!config.aiEnabled) {
+async function analyzeWithAi(data, localReport, ai) {
+  if (!ai.enabled) {
     return {
       ...localReport,
       warning: 'AI belum dikonfigurasi; insight dihitung dari metrik lokal.',
@@ -576,7 +576,7 @@ async function analyzeWithAi(data, localReport) {
     const content = await callAi([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
-    ], 0.4);
+    ], 0.4, ai);
     const parsed = aiInsightSchema.parse(parseJsonContent(content));
     return mergeAiReport(localReport, parsed, data);
   } catch (error) {
@@ -589,8 +589,11 @@ async function analyzeWithAi(data, localReport) {
 }
 
 export async function buildInsightReport({ ownerId, periodDays = 30, useAi = false }) {
-  const data = await loadInsightData(ownerId, periodDays);
-  const localReport = buildLocalReport(data);
+  const [data, ai] = await Promise.all([
+    loadInsightData(ownerId, periodDays),
+    getAiConfig(),
+  ]);
+  const localReport = buildLocalReport(data, ai.enabled);
   if (!useAi) return localReport;
-  return analyzeWithAi(data, localReport);
+  return analyzeWithAi(data, localReport, ai);
 }

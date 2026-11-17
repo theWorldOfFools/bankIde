@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   LogOut,
+  Settings2,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const baseNavigation = [
 
 const adminNavigation = [
   { to: '/admin/users', label: 'Kelola User', icon: Users, end: false },
+  { to: '/admin/ai', label: 'Pengaturan AI', icon: Settings2, end: false },
 ];
 
 const pageTitles = {
@@ -29,6 +31,7 @@ const pageTitles = {
   '/insights': 'Insight Produktivitas',
   '/recommendations': 'Rekomendasi',
   '/admin/users': 'Kelola User',
+  '/admin/ai': 'Pengaturan AI',
 };
 
 function AmbientBackground() {
