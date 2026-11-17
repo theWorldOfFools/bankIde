@@ -15,6 +15,8 @@ const STATUSES = ['pending_email', 'pending_approval', 'active', 'rejected'];
 
 const listSchema = z.object({
   status: z.enum([...STATUSES, '']).optional().default(''),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
 });
 
 const mapUser = (row) => ({
@@ -44,16 +46,31 @@ router.get('/users', asyncHandler(async (req, res) => {
     where = 'WHERE status = $1';
   }
 
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM users ${where}`,
+    params
+  );
+  const total = countResult.rows[0]?.total || 0;
+  const offset = (input.page - 1) * input.limit;
+
   const { rows } = await pool.query(
     `SELECT id, email, role, status, email_verified_at, created_at
      FROM users
      ${where}
      ORDER BY created_at DESC, id DESC
-     LIMIT 200`,
-    params
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, input.limit, offset]
   );
 
-  res.json({ items: rows.map(mapUser) });
+  res.json({
+    items: rows.map(mapUser),
+    meta: {
+      page: input.page,
+      pageSize: input.limit,
+      total,
+      totalPages: Math.ceil(total / input.limit),
+    },
+  });
 }));
 
 router.post('/users/:id/approve', asyncHandler(async (req, res) => {

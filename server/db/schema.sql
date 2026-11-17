@@ -108,7 +108,8 @@ CREATE TABLE IF NOT EXISTS ideas (
 );
 
 ALTER TABLE ideas
-  ADD COLUMN IF NOT EXISTS owner_id BIGINT REFERENCES users(id) ON DELETE CASCADE;
+  ADD COLUMN IF NOT EXISTS owner_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS demo_url TEXT NOT NULL DEFAULT '';
 
 UPDATE ideas
 SET owner_id = (
@@ -137,6 +138,85 @@ DROP TRIGGER IF EXISTS ideas_set_updated_at ON ideas;
 CREATE TRIGGER ideas_set_updated_at
 BEFORE UPDATE ON ideas
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS monitoring_checklist_items (
+  id BIGSERIAL PRIMARY KEY,
+  idea_id BIGINT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+  label TEXT NOT NULL CHECK (char_length(btrim(label)) BETWEEN 1 AND 200),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  archived_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS monitoring_checklist_items_idea_idx
+  ON monitoring_checklist_items (idea_id, archived_at);
+
+CREATE TABLE IF NOT EXISTS monitoring_checklist_checks (
+  item_id BIGINT NOT NULL REFERENCES monitoring_checklist_items(id) ON DELETE CASCADE,
+  log_date DATE NOT NULL,
+  is_done BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (item_id, log_date)
+);
+
+CREATE TABLE IF NOT EXISTS monitoring_days (
+  id BIGSERIAL PRIMARY KEY,
+  idea_id BIGINT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+  log_date DATE NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  blockers TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (idea_id, log_date)
+);
+
+CREATE INDEX IF NOT EXISTS monitoring_days_idea_idx
+  ON monitoring_days (idea_id, log_date DESC);
+
+DROP TRIGGER IF EXISTS monitoring_days_set_updated_at ON monitoring_days;
+CREATE TRIGGER monitoring_days_set_updated_at
+BEFORE UPDATE ON monitoring_days
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS monitoring_tasks (
+  id BIGSERIAL PRIMARY KEY,
+  idea_id BIGINT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(btrim(title)) BETWEEN 1 AND 200),
+  status TEXT NOT NULL DEFAULT 'todo'
+    CONSTRAINT monitoring_tasks_status_check
+    CHECK (status IN ('todo', 'in_progress', 'done')),
+  notes TEXT NOT NULL DEFAULT '',
+  worked_on DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS monitoring_tasks_idea_idx
+  ON monitoring_tasks (idea_id, status);
+
+DROP TRIGGER IF EXISTS monitoring_tasks_set_updated_at ON monitoring_tasks;
+CREATE TRIGGER monitoring_tasks_set_updated_at
+BEFORE UPDATE ON monitoring_tasks
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS monitoring_attachments (
+  id BIGSERIAL PRIMARY KEY,
+  idea_id BIGINT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+  day_id BIGINT NOT NULL REFERENCES monitoring_days(id) ON DELETE CASCADE,
+  task_id BIGINT REFERENCES monitoring_tasks(id) ON DELETE SET NULL,
+  file_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),
+  data BYTEA NOT NULL,
+  uploaded_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS monitoring_attachments_idea_idx
+  ON monitoring_attachments (idea_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS monitoring_attachments_day_idx
+  ON monitoring_attachments (day_id);
 
 CREATE TABLE IF NOT EXISTS recommended_ideas (
   id BIGSERIAL PRIMARY KEY,

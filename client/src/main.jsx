@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
+import '@fontsource-variable/manrope';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';

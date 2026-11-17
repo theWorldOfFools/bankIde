@@ -10,6 +10,19 @@ router.use(requireAuth);
 
 const STATUSES = ['idea', 'planned', 'in_progress', 'done', 'archived'];
 
+const isValidHttpUrl = (value) => {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const demoUrlSchema = z.string().trim().max(2000)
+  .refine(isValidHttpUrl, 'Link demo harus menggunakan http:// atau https://.');
+
 const ideaSchema = z.object({
   title: z.string().trim().min(1).max(200),
   category: z.string().trim().min(1).max(80),
@@ -17,6 +30,7 @@ const ideaSchema = z.object({
   v1Features: z.string().max(10000).optional().default(''),
   solution: z.string().max(10000).optional().default(''),
   agencyPrompt: z.string().max(10000).optional().default(''),
+  demoUrl: demoUrlSchema.optional().default(''),
   status: z.enum(STATUSES).optional().default('idea'),
   reminderAt: z.string().datetime({ offset: true }).nullable().optional().default(null),
 }).strict();
@@ -28,6 +42,7 @@ const updateSchema = z.object({
   v1Features: z.string().max(10000).optional(),
   solution: z.string().max(10000).optional(),
   agencyPrompt: z.string().max(10000).optional(),
+  demoUrl: demoUrlSchema.optional(),
   status: z.enum(STATUSES).optional(),
   reminderAt: z.string().datetime({ offset: true }).nullable().optional(),
 }).strict();
@@ -52,6 +67,7 @@ const mapIdea = (row) => ({
   v1Features: row.v1_features,
   solution: row.solution,
   agencyPrompt: row.agency_prompt,
+  demoUrl: row.demo_url,
   status: row.status,
   reminderAt: row.reminder_at,
   createdAt: row.created_at,
@@ -159,8 +175,8 @@ router.post('/', asyncHandler(async (req, res) => {
     await client.query('BEGIN');
     const { rows } = await client.query(
       `INSERT INTO ideas
-        (owner_id, title, category, context, v1_features, solution, agency_prompt, status, reminder_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        (owner_id, title, category, context, v1_features, solution, agency_prompt, demo_url, status, reminder_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING *`,
       [
         req.user.id,
@@ -170,6 +186,7 @@ router.post('/', asyncHandler(async (req, res) => {
         input.v1Features,
         input.solution,
         input.agencyPrompt,
+        input.demoUrl,
         input.status,
         input.reminderAt,
       ]
@@ -195,6 +212,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     v1Features: 'v1_features',
     solution: 'solution',
     agencyPrompt: 'agency_prompt',
+    demoUrl: 'demo_url',
     status: 'status',
     reminderAt: 'reminder_at',
   };

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { CalendarClock, LoaderCircle, X } from 'lucide-react';
+import { CalendarClock, LoaderCircle, Sparkles, X } from 'lucide-react';
+import { motion } from 'motion/react';
 import { api } from '../lib/api';
 import { CATEGORY_SUGGESTIONS, STATUS_META, STATUS_ORDER } from '../lib/constants';
 import { toWibInput, wibInputToIso } from '../lib/dates';
 
-const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100';
-const labelClass = 'mb-1.5 block text-sm font-medium text-slate-700';
+const inputClass = 'w-full rounded-2xl border border-white/70 bg-white/80 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100/70';
+const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-400';
 
 export default function IdeaFormModal({ idea, categories = [], onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -15,6 +16,7 @@ export default function IdeaFormModal({ idea, categories = [], onClose, onSaved 
     v1Features: idea?.v1Features || '',
     solution: idea?.solution || '',
     agencyPrompt: idea?.agencyPrompt || '',
+    demoUrl: idea?.demoUrl || '',
     status: idea?.status || 'idea',
     reminderAt: toWibInput(idea?.reminderAt),
   });
@@ -52,6 +54,7 @@ export default function IdeaFormModal({ idea, categories = [], onClose, onSaved 
         v1Features: form.v1Features,
         solution: form.solution,
         agencyPrompt: form.agencyPrompt,
+        demoUrl: form.demoUrl.trim(),
         status: form.status,
         reminderAt: wibInputToIso(form.reminderAt),
       };
@@ -72,32 +75,46 @@ export default function IdeaFormModal({ idea, categories = [], onClose, onSaved 
   const allCategories = [...new Set([...CATEGORY_SUGGESTIONS, ...categories])];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div
-        className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl"
+      <motion.div
+        initial={{ opacity: 0, y: 48, scale: 0.97, rotateX: 7 }}
+        animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+        exit={{ opacity: 0, y: 32, scale: 0.97, rotateX: 7 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+        style={{ transformPerspective: 1200 }}
+        className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[2rem] border border-white/70 bg-white/95 shadow-2xl shadow-slate-950/30 backdrop-blur-2xl sm:rounded-3xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="idea-form-title"
       >
-        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div>
-            <h2 id="idea-form-title" className="text-lg font-semibold text-slate-900">
-              {idea ? 'Edit Ide' : 'Ide Baru'}
-            </h2>
-            <p className="mt-0.5 text-xs text-slate-400">
-              Simpan konteks dan langkah awal agar ide tidak berhenti sebagai catatan.
-            </p>
+        <header className="relative flex items-center justify-between gap-4 border-b border-white/70 bg-white/70 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-500/25">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 id="idea-form-title" className="text-lg font-semibold tracking-tight text-slate-950">
+                {idea ? 'Edit Ide' : 'Ide Baru'}
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Simpan konteks dan langkah awal agar ide tidak berhenti sebagai catatan.
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="Tutup"
           >
             <X className="h-5 w-5" />
@@ -105,9 +122,9 @@ export default function IdeaFormModal({ idea, categories = [], onClose, onSaved 
         </header>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+          <div className="scrollbar-slim flex-1 space-y-4 overflow-y-auto px-5 py-5">
             {error && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <div className="rounded-2xl border border-rose-200/80 bg-rose-50/90 px-4 py-3 text-sm text-rose-700">
                 {error}
               </div>
             )}
@@ -176,6 +193,21 @@ export default function IdeaFormModal({ idea, categories = [], onClose, onSaved 
             </div>
 
             <label>
+              <span className={labelClass}>Link demo</span>
+              <input
+                type="url"
+                maxLength={2000}
+                value={form.demoUrl}
+                onChange={(event) => update('demoUrl', event.target.value)}
+                className={inputClass}
+                placeholder="https://demo.example.com"
+              />
+              <span className="mt-1 block text-xs text-slate-400">
+                Opsional. URL demo atau staging yang bisa dibuka dari detail ide.
+              </span>
+            </label>
+
+            <label>
               <span className={labelClass}>Konteks / masalah</span>
               <textarea
                 rows={3}
@@ -224,25 +256,26 @@ export default function IdeaFormModal({ idea, categories = [], onClose, onSaved 
             </label>
           </div>
 
-          <footer className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-4">
+          <footer className="flex items-center justify-end gap-2 border-t border-white/70 bg-white/60 px-5 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
             >
               Batal
             </button>
-            <button
+            <motion.button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-60"
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-xl shadow-slate-900/25 transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-60"
             >
               {saving && <LoaderCircle className="h-4 w-4 animate-spin" />}
               {saving ? 'Menyimpan...' : 'Simpan Ide'}
-            </button>
+            </motion.button>
           </footer>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

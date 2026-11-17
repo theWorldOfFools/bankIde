@@ -7,9 +7,11 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 - Login admin dan user dengan cookie JWT httpOnly.
 - Registrasi user dengan verifikasi email dan persetujuan admin. Akun admin pertama tetap dibuat langsung saat workspace belum memiliki admin.
 - Ide bersifat privat per user; admin dapat melihat dan mengelola seluruh ide.
-- CRUD ide lengkap: judul, kategori, konteks, fitur V1, solusi, agency prompt, status, dan pengingat.
+- CRUD ide lengkap: judul, kategori, konteks, fitur V1, solusi, agency prompt, link demo, status, dan pengingat.
+- Monitoring per ide: checklist harian yang dapat dicentang per tanggal, catatan progress/blocker, task proyek, lampiran file, dan link demo.
 - Dashboard statistik, pipeline status, kategori teratas, dan pengingat aktif.
-- Pencarian, filter kategori/status, tampilan tabel/kartu, dan paginasi.
+- Pencarian, filter kategori/status, tampilan tabel/kartu, dan paginasi server-side pada daftar ide, rekomendasi, dan kelola user.
+- Antarmuka modern dengan panel glass, transisi halaman, kartu tilt 3D, dan animasi modal menggunakan Motion.
 - Import Excel `.xlsx`/`.xls` dengan validasi, deteksi duplikat, dan laporan per baris.
 - Reminder email dan Web Push ke pemilik ide melalui outbox yang diproses cron setiap menit, dengan retry maksimal tiga kali.
 - Rekomendasi ide dari AI opsional (API kompatibel OpenAI) atau kurasi lokal sebagai fallback.
@@ -17,7 +19,7 @@ BankIde adalah PWA untuk menyimpan, mengelola, menjadwalkan, dan mengeksekusi id
 
 ## Stack
 
-- Frontend: React 19, Vite 6, Tailwind CSS 4, React Router 7, Lucide.
+- Frontend: React 19, Vite 6, Tailwind CSS 4, React Router 7, Motion, Manrope, Lucide.
 - Backend: Express 4, PostgreSQL, Zod, JWT, Multer, SheetJS, Nodemailer, Web Push.
 - PWA: `vite-plugin-pwa` dengan strategi `injectManifest` dan Workbox.
 - Scheduler: `node-cron`, zona waktu `Asia/Jakarta`.
@@ -146,6 +148,18 @@ Aturan:
 - Duplikat ditentukan dari kombinasi `lower(title)` dan `category` pada ide milik user yang sama, lalu dilewati.
 - Tanggal tanpa offset dianggap WIB (`Asia/Jakarta`).
 
+## Monitoring Proyek
+
+Buka detail ide lalu pilih tab **Monitoring**. Setiap ide memiliki:
+
+- **Checklist harian** yang dibuat sekali dan dapat dicentang berbeda untuk setiap tanggal.
+- **Catatan harian** untuk progress dan blocker pada tanggal yang dipilih.
+- **Task proyek** dengan status belum dikerjakan, sedang dikerjakan, atau selesai, beserta tanggal pengerjaan.
+- **Lampiran** per tanggal (maksimal 5 MB per file) yang dapat dikaitkan ke task. File disimpan di PostgreSQL agar tetap ada saat container dibangun ulang.
+- **Link demo** yang dapat diubah dari tab monitoring atau form ide.
+
+Data monitoring hanya dapat diakses oleh pemilik ide; admin dapat mengakses seluruh ide. Lampiran diunduh melalui endpoint API yang memeriksa kepemilikan ide.
+
 ## Reminder
 
 Saat ide dibuat atau diubah, server membuat job di tabel `reminder_deliveries` untuk setiap channel yang aktif. Email dikirim ke alamat pemilik ide, sedangkan Web Push hanya dikirim ke langganan milik pemilik ide. Cron berjalan setiap menit, mengambil job dengan `FOR UPDATE SKIP LOCKED`, mengirim email/push, lalu menandainya `sent`. Job yang gagal dicoba ulang dengan backoff sampai tiga attempt.
@@ -189,7 +203,7 @@ Aplikasi tersedia di `http://localhost:4100`. Ubah port host lewat `BANKIDE_HOST
 ```text
 client/                 React PWA
   public/               Manifest dan ikon
-  src/components/       Shell, form, push toggle
+  src/components/       Shell, form, detail monitoring, push toggle
   src/context/          Sesi user
   src/lib/              API client, tanggal WIB, konstanta
   src/pages/            Login, daftar, verifikasi email, dashboard, ide, rekomendasi, kelola user
@@ -210,4 +224,4 @@ npm run build
 npm run reminder:once
 ```
 
-Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran.
+Pengujian API dapat dilakukan dengan login ke `/api/auth/login`, lalu memakai cookie sesi untuk endpoint `/api/ideas`, `/api/ideas/:id/monitoring`, `/api/dashboard`, `/api/import/ideas`, `/api/recommendations`, dan `/api/push`. Endpoint `/api/admin/users` hanya dapat diakses admin untuk menyetujui atau menolak pendaftaran. Daftar ide, rekomendasi, dan user menerima parameter `page` dan `limit`, lalu mengembalikan `meta` berisi `page`, `pageSize`, `total`, dan `totalPages`.

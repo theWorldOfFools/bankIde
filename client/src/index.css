@@ -1,18 +1,34 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --app-bg: #f5f6fb;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: rgba(148, 163, 184, 0.22);
+  --brand: #4f46e5;
+  --brand-soft: #eef2ff;
+}
+
 html {
   -webkit-tap-highlight-color: transparent;
-  color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
   min-height: 100dvh;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--app-bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: "Manrope Variable", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "ss01" 1, "cv11" 1;
 }
 
 ::selection {
@@ -28,6 +44,149 @@ textarea {
   touch-action: manipulation;
 }
 
+:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.75);
+  outline-offset: 2px;
+}
+
+.app-canvas {
+  position: relative;
+  min-height: 100dvh;
+  background:
+    radial-gradient(1100px 600px at 8% -10%, rgba(129, 140, 248, 0.22), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, rgba(232, 121, 249, 0.14), transparent 55%),
+    radial-gradient(800px 600px at 55% 110%, rgba(56, 189, 248, 0.12), transparent 60%),
+    var(--app-bg);
+}
+
+.aurora-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px);
+  background-size: 58px 58px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 5%, transparent 72%);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 20px 50px -30px rgba(79, 70, 229, 0.35);
+  backdrop-filter: blur(22px);
+}
+
+.glass-soft {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+}
+
+.surface-card {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 24px 60px -42px rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(18px);
+}
+
+.text-gradient {
+  background-image: linear-gradient(120deg, #4338ca 0%, #7c3aed 45%, #db2777 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 48%,
+    transparent 62%
+  );
+  transform: translateX(-120%) rotate(8deg);
+  transition: transform 750ms ease;
+  pointer-events: none;
+}
+
+.card-shine:hover::after {
+  transform: translateX(120%) rotate(8deg);
+}
+
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+.scrollbar-slim::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+
 .safe-bottom {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -22px, 0) scale(1.04); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer-slide {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.animate-float-slow {
+  animation: float-slow 14s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 8s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background-size: 200% 200%;
+  animation: shimmer-slide 8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

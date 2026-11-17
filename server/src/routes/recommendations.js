@@ -26,7 +26,8 @@ const generateSchema = z.object({
 
 const listSchema = z.object({
   category: z.string().trim().max(80).optional().default(''),
-  limit: z.coerce.number().int().min(1).max(50).optional().default(20),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(24).optional().default(9),
 });
 
 router.get('/', asyncHandler(async (req, res) => {
@@ -38,7 +39,13 @@ router.get('/', asyncHandler(async (req, res) => {
     params.push(input.category);
     where = 'WHERE category = $1';
   }
-  params.push(input.limit);
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM recommended_ideas ${where}`,
+    params
+  );
+  const total = countResult.rows[0]?.total || 0;
+  const offset = (input.page - 1) * input.limit;
 
   const { rows } = await pool.query(`
     SELECT id, title, category, description,
@@ -48,11 +55,19 @@ router.get('/', asyncHandler(async (req, res) => {
            created_at AS "createdAt"
     FROM recommended_ideas
     ${where}
-    ORDER BY potential_score DESC, created_at DESC
-    LIMIT $${params.length}
-  `, params);
+    ORDER BY potential_score DESC, created_at DESC, id DESC
+    LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+  `, [...params, input.limit, offset]);
 
-  res.json({ items: rows });
+  res.json({
+    items: rows,
+    meta: {
+      page: input.page,
+      pageSize: input.limit,
+      total,
+      totalPages: Math.ceil(total / input.limit),
+    },
+  });
 }));
 
 router.post('/generate', generateLimiter, asyncHandler(async (req, res) => {

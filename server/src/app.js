@@ -7,6 +7,7 @@ import { config } from './config.js';
 import authRouter from './routes/auth.js';
 import adminRouter from './routes/admin.js';
 import ideasRouter from './routes/ideas.js';
+import monitoringRouter from './routes/monitoring.js';
 import importRouter from './routes/import.js';
 import dashboardRouter from './routes/dashboard.js';
 import recommendationsRouter from './routes/recommendations.js';
@@ -32,6 +33,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/ideas/:ideaId/monitoring', monitoringRouter);
 app.use('/api/ideas', ideasRouter);
 app.use('/api/import', importRouter);
 app.use('/api/dashboard', dashboardRouter);
